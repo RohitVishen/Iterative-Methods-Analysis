@@ -1,0 +1,478 @@
+%++++++++++++++++++++++++++++++++++++++++
+% Don't modify this section unless you know what you're doing!
+\documentclass[letterpaper,12pt]{article}
+\usepackage{tabularx} % extra features for tabular environment
+\usepackage{amsmath}  % improve math presentation
+\usepackage{graphicx} % takes care of graphic including machinery
+\usepackage[margin=1in,letterpaper]{geometry} % decreases margins
+\usepackage{cite} % takes care of citations
+\usepackage[final]{hyperref} % adds hyper links inside the generated pdf file
+\hypersetup{
+	colorlinks=true,       % false: boxed links; true: colored links
+	linkcolor=blue,        % color of internal links
+	citecolor=blue,        % color of links to bibliography
+	filecolor=magenta,     % color of file links
+	urlcolor=blue         
+}
+%++++++++++++++++++++++++++++++++++++++++
+
+% anything after % is a comment
+
+\usepackage{listings}
+\usepackage{color}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstset{frame=tb,
+  language=MATLAB,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+ 
+\begin{document}
+
+\title{Numerical Analysis Project  \#1: Iterative Methods Analysis}\\ 
+\author{Rohit Vishen}
+\date{\textbf{Due Date:} March 5th, 2020}
+\maketitle
+
+
+\section{Problems} 
+
+\begin{enumerate}
+\vspace{.1in}
+\item a)  Write MATLAB codes for Jacobi, Gauss-Seidel, SOR, Steepest Descent and Conjugate Gradient.Make sure to document the steps in your code.
+
+Jacobi Algorithm 
+\begin{lstlisting}
+
+// Jacobi.m
+function [x,k] = jacobi(A,b)
+n = length(b);
+x = zeros(n,1);
+D = eye(n).*diag(A);
+U = D-triu(A);
+L = D-tril(A);
+T = inv(D)*(L+U);
+c = inv(D)*b;
+tol = 10^(-6);
+k = 0;
+error = norm (A*x-b,inf);
+while error > tol
+  x = T*x+c;
+  error = norm(A*x-b, inf);
+  k = k + 1;
+end 
+ 
+
+
+
+
+\end{lstlisting}
+
+Gauss Seidel Algorithm 
+
+\begin{lstlisting}
+// GaussSeidel.m
+function [X, Ite]=GaussSeidel(A,b)
+b = randi(10,300,1);
+Tol=1e-2; MaxIte=300;
+n=length(b); X=zeros(n,1); Error=ones(n,1); Ite=1; Xsol(:,Ite)=X;
+while max(Error)>Tol
+    Ite=Ite+1; Z=X;
+    for i=1:1:n
+        j=1:1:n;
+        j(i)=[];Xtemp=X; Xtemp(i)=[];
+        X(i)=(b(i)-sum(A(i,j)*Xtemp))/A(i,i);
+    end
+    Xsol(:,Ite)=X;Error=sqrt((X-Z).^2);
+    if Ite == MaxIte, break,end
+end
+GaussSeidelTable=[1:Ite;Xsol]'
+end
+    
+
+\end{lstlisting}
+
+
+Successive Over-Relaxation Algorithm 
+
+\begin{lstlisting}
+// SOR.m
+function [k] = SOR(A,b,x0,omega) %Defines the function
+omega=0.8; 
+% Decided to use a common value of 1.2 for omega for matrix 20 as the computed omega value was 4 which doesn't work
+%Computed omega value was 4 which was > 2
+n = length(b);
+x = zeros(n,1);
+D = eye(n).*diag(A);
+U = D-triu(A);
+L = D-tril(A);
+T = inv(D-omega*L)*((1-omega)*D+omega*U);
+c = inv(D-omega*L)*omega*b;
+tol = 10^(-6); % sets tolerance to 10^-6
+k = 0;
+error = norm (A*x-b,inf);
+while error > tol
+  x = T*x+c;
+  error = norm(A*x-b, inf);
+  k = k + 1;
+end 
+    
+
+\end{lstlisting}
+
+
+Steepest Descent Algorithm
+\begin{lstlisting}
+// steepestdescent.m
+function[iter] = steepestdescent(A, b)
+% defines our function for the steepest descent alg
+
+iter = 1;
+x = zeros(300,1); %Changes based on the dimensions of your matrix
+tol = 10^-6
+r = b - A*x;
+delta = r'*r;
+conv = delta;
+delta0 = delta;
+while(delta > tol*delta0) 
+    q = A*r;
+    alpha = delta/(q'*r);
+    x = x + alpha*r;
+    if mod(iter,50) == 0
+    r = b - A*x;% recalculates r
+    else
+        r = r - alpha*q;
+end
+        delta = r'*r;
+        conv = [conv, delta];
+        iter = iter + 1; 
+end;
+    
+
+\end{lstlisting}
+
+
+Conjugate Gradient Algorithm
+\begin{lstlisting}
+// conjugate.m
+function [x] = conjugate(A)
+
+n=length(A);
+x=zeros(n,1);
+tol=10^-6;
+b=rand(n,1); % generates our random vector b
+v=b;
+maxIt=2000; %sets max iterations to 2000
+
+ 
+
+for iter=1:maxIt
+
+    if norm(A*x-b) < tol
+       X = sprintf('method converges in %d iterations ',iter);
+disp(X);
+break;
+end
+
+v = b-A*x;
+a=(v'*v)/(v'*A*v);
+x=x+a*v;
+v1=b-A*x;
+v1=v1-v*(v1'*v)/(v'*v);
+a1=(v1'*v1)/(v1'*A*v1);
+x=x+a1*v1;
+
+    if isnan(sum(x))==1
+disp('method diverges')
+break;
+end
+end
+
+if iter==maxIt
+X=sprintf('method does not converge in %d iterations.',iter);
+disp(X);
+end
+    
+
+\end{lstlisting}
+
+b) Solve each system of equations using Jacobi, Gauss-Seidel,SOR, Steepest Descent and Conjugate Gradient methods and record the number of iterations that each method took to converge with a 10 exponent -6 tolerance. 
+
+\begin{itemize}
+    \item Jacobi's Algorithm-71 iterations to converge for matrix 10. 512 iterations to converge for matrix 20.
+    \item Gauss-Seidel Algorithm-22 iterations to converge for matrix 10. 140 iterations for matrix 20
+    \item SOR Algorithm-20 iterations to converge for matrix 10. 105 iterations to converge for matrix 20. Initially it took 33 iterations for matrix 10 but this was incorrect as SOR should take less iterations to converge then Gauss-Seidel. Changing the Omega value helped correct this issue. 
+    \item Steepest Descent Algorithm-27 iterations for matrix 10. 333 iterations for matrix 20.
+    \item Conjugate Gradient Algorithm-33 iterations to converge for matrix 10. Method diverges for matrix 20
+\end{itemize}
+
+\begin{enumerate}
+\item Matrix 10: 700 x 700 with b = randi(10,700,1);
+\begin{center}
+\\\begin{tabular}{|l|r|}
+\hline
+\textbf{Method}  & \textbf{Number of Iterations}\\ \hline
+Jacobi's & 71\\ \hline
+Guass-Seidel's & 22  \\ \hline
+SOR & 20  \\\hline
+Steepest Descent & 105 \\ \hline
+Conjugate Gradient & 33\\ \hline
+\end{tabular}
+\end{center}
+
+\item Matrix 20: 300 x 300 with b = randi(10,300,1);
+\begin{center}
+\\\begin{tabular}{|l|r|}
+\hline
+\textbf{Method}  & \textbf{Number of Iterations}\\ \hline
+Jacobi's & 512\\ \hline
+Guass-Seidel's & 140  \\ \hline
+SOR & 105 \\\hline
+Steepest Descent & 333 \\ \hline
+Conjugate Gradient & method diverges\\ \hline
+\end{tabular}
+\end{center}
+
+
+
+\end{enumerate}
+
+
+
+
+\begin{enumerate}
+
+\break{}
+\begin{center}
+\\Matrix 10: Optimal Omega Table
+\end{center}
+
+
+
+\\
+
+\begin{center}
+\\\begin{tabular}{|l|r|}
+\hline
+\textbf{Optimal Omega}  & \textbf{Number of Iterations}\\ \hline
+1.3 & 26\\ \hline
+1.4 & 33  \\ \hline
+1.6 & 58  \\\hline
+1.8 & 133 \\ \hline
+
+\end{tabular}
+\end{center}
+
+
+
+
+
+\begin{center}
+\\Matrix 20: Optimal Omega Table
+
+\end{center}
+\\
+
+\begin{center}
+\\\begin{tabular}{|l|r|}
+\hline
+\textbf{Optimal Omega}  & \textbf{Number of Iterations}\\ \hline
+1.2 & 105\\ \hline
+1.4 & 87  \\ \hline
+1.7 & 73  \\\hline
+1.8 & 62 \\ \hline
+
+\end{tabular}
+\end{center}
+
+
+
+
+
+
+
+
+
+
+c)  Explanation of results obtained in b).
+
+The condition number of matrix 10 is 9 and the condition number of matrix 20 is 426.11. The condition number is important because it tells us the max ratio of the relative error in x to the relative error in b. A smaller condition number means that the error in x will not be much bigger than the error in b. These results were obtained by using the Matlab code:
+
+cond(A)
+
+The spectral radius of a matrix is defined as the largest absolute value of its eigenvalues. Using the code:
+
+max(abs(eig(A))) 
+
+The spectral radius of matrix 10 is 0.9 while the spectral radius of matrix 20 is 2.5. Using Matlab I concluded that matrix 10 is not symmetric because A transpose does not equal A. The Matlab code I used to determine the transpose of A was:
+
+B= A.'
+
+B=transpose(A); 
+
+This showed the transpose of A did not equal A for matrix 10. Since matrix 10 is not symmetric it cannot be positive definite. Matrix 10 is not tridiagonal because the diagonal below the main diagonal does contain a zero. For a matrix to be tridiagonal the main diagonal along with the diagonals above and below need to have all non-zero entries. Matrix 20 was definitely a symmetric matrix however. The transpose of matrix 20 is the same as the original matrix thus it is symmetric. Matrix 20 is also definitely tridiagonal. One interesting property about matrix 20 is that the main diagonal elements are all greater than zero however the elements in the diagonals directly above and below the main diagonal are less than zero. The conjugate gradient diverged for matrix 20 and converged in 33 iterations for matrix 10. 
+
+
+\end{enumerate}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\section{An Application Problem}
+\begin{enumerate}
+
+\item Matrix form of P_{i}
+
+\\\[ \begin{bmatrix}
+1 & \frac{-1}{2} & 0 & \hdots & 0\\
+\frac{-1}{2} & 1 & \frac{-1}{2} & \ddots & \vdots\\
+0 & \frac{-1}{2} & 1 & \ddots & 0\\
+\vdots & \ddots & \ddots & \ddots & \vdots\\
+\vdots & \ddots & \frac{-1}{2} & 1 & \frac{-1}{2} \\
+0 & \hdots & 0 & \frac{-1}{2} & 1 \\
+
+\end{bmatrix}
+\begin{bmatrix}
+P_{1}\\
+P_{2}\\
+\vdots\\
+P_{n-1}\\
+
+\end{bmatrix}
+=
+\\ \begin{bmatrix}
+\frac{1}{2}\\
+0\\
+\vdots\\
+0 \\
+
+\end{bmatrix}
+\]
+
+
+ 
+ 
+\item n = 50
+\begin{center}
+\\\begin{tabular}{|l|r|}
+\hline
+\textbf{Method}  & \textbf{Number of Iterations}\\ \hline
+Jacobi's & 4103\\ \hline
+Guass-Seidel's & 2042  \\ \hline
+SOR & 103 \\\hline
+Steepest Descent & 2602 \\ \hline
+Conjugate Gradient & method diverges\\ \hline
+\end{tabular}
+\end{center}
+\item n = 100
+\begin{center}
+\\\begin{tabular}{|l|r|}
+\hline
+\textbf{Method}  & \textbf{Number of Iterations}\\ \hline
+Jacobi's & 13275\\ \hline
+Guass-Seidel's & 6615  \\ \hline
+SOR & 248 \\\hline
+Steepest Descent & 3769 \\ \hline
+Conjugate Gradient & method diverges\\ \hline
+\end{tabular}
+\end{center}
+\item n = 200
+\begin{center}
+\\\begin{tabular}{|l|r|}
+\hline
+\textbf{Method}  & \textbf{Number of Iterations}\\ \hline
+Jacobi's & 41316\\ \hline
+Guass-Seidel's & 20611  \\ \hline
+SOR & 657 \\\hline
+Steepest Descent & 6609 \\ \hline
+Conjugate Gradient & method diverges\\ \hline
+\end{tabular}
+\end{center}
+
+
+\item Results Expected
+\\ The results ...
+\item Choose a value \alpha... \alpha = 2
+\\
+ n = 50
+\begin{center}
+\\\begin{tabular}{|l|r|}\hline
+\textbf{Method}  & \textbf{Number of Iterations}\\ \hline
+Jacobi's & 676 \\ \hline
+Guass-Seidel's &  316 \\ \hline
+SOR &  260 \\\hline
+Steepest Descent & 335 \\ \hline
+Conjugate Gradient & method diverges \\ \hline
+\end{tabular}
+\end{center}
+There's no optimal omega, used 1.2 
+\\ n = 100
+\begin{center}
+\\\begin{tabular}{|l|r|}
+\hline
+\textbf{Method}  & \textbf{Number of Iterations}\\ \hline
+Jacobi's & 663 \\ \hline
+Guass-Seidel's &  285 \\ \hline
+SOR & 225 \\\hline
+Steepest Descent &  328\\ \hline
+Conjugate Gradient &  method diverges \\ \hline
+\end{tabular}
+\end{center}
+There's no optimal omega, used 1.2 
+\\ n = 200
+\begin{center}
+\\\begin{tabular}{|l|r|}
+\hline
+\textbf{Method}  & \textbf{Number of Iterations}\\ \hline
+Jacobi's & 651 \\ \hline
+Guass-Seidel's &  229 \\ \hline
+SOR & 166\\\hline
+Steepest Descent & 327 \\ \hline
+Conjugate Gradient & method diverges \\ \hline
+\end{tabular}
+\end{center}
+There's no optimal omega, used 1.2 
+\\
+
+\end{enumerate}
+
+
+
+
+
+
+
+
+
+
+
+
+
+\end{document}
